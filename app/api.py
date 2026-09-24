@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.alerts import alertas_activas_dict
+from app.config import ANTHROPIC_API_KEY
 from app.db import DB_PATH, read_only_connection
 from app.nl2sql_agent import answer_question
 
@@ -51,7 +52,17 @@ def health() -> dict:
                 conn.execute("SELECT 1").fetchone()
         except Exception:
             db_ok = False
-    return {"status": "ok" if db_ok else "degraded", "db_ok": db_ok}
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "db_ok": db_ok,
+        # Nunca la key en sí, solo si el proceso la ve. Sirve para detectar
+        # un caso puntual: un hilo interno que arrancó antes de que la key
+        # existiera se queda con app.config.ANTHROPIC_API_KEY = "" cacheado
+        # en sys.modules para siempre, aunque el proceso reciba la variable
+        # de entorno correcta después — solo un reinicio real del proceso
+        # (Reboot app en Streamlit Cloud, no un simple git push) lo arregla.
+        "anthropic_key_configured": bool(ANTHROPIC_API_KEY),
+    }
 
 
 @app.get("/alerts")

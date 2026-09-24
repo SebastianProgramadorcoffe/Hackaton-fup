@@ -140,6 +140,32 @@ try:
             "La API interna no respondió a tiempo al arrancar. Si el chat del agente "
             "falla, recarga la página — en frío puede tardar unos segundos más."
         )
+    else:
+        # os.environ ya tiene la key en ESTE run (chequeo de arriba), pero el
+        # hilo interno pudo haber arrancado en un run anterior de ESTE MISMO
+        # proceso, antes de que la key existiera — app.config quedó cacheado
+        # en sys.modules con ANTHROPIC_API_KEY="" para siempre, y ni un git
+        # push ni un rerun de Streamlit lo re-importan. Comparar lo que ve
+        # os.environ ahora contra lo que el proceso de la API reporta es la
+        # única forma de distinguir "la key nunca llegó" de "llegó pero hay
+        # un hilo viejo colgado" sin adivinar.
+        import requests as _requests
+
+        try:
+            _salud = _requests.get(f"{API_URL}/health", timeout=2).json()
+            if not _salud.get("anthropic_key_configured"):
+                st.error(
+                    "La API interna sigue sin ver ANTHROPIC_API_KEY, aunque este proceso "
+                    "sí la tiene disponible ahora. Esto pasa cuando el hilo interno arrancó "
+                    "ANTES de que agregaras el secreto: se queda con la versión vieja en "
+                    "memoria para siempre, y ni un `git push` ni recargar la página lo "
+                    "arreglan. **Necesitas un reinicio real**: menú ⋮ de la app en "
+                    "share.streamlit.io → **Reboot app** (no solo esperar el auto-deploy "
+                    "de un push)."
+                )
+                st.stop()
+        except _requests.RequestException:
+            pass  # /health no respondió a tiempo; el warning de arriba ya cubre este caso
 except Exception as exc:
     st.error(f"No se pudo inicializar el backend: {exc}")
     st.stop()
