@@ -34,7 +34,16 @@ data/hackaton.db  →  app/api.py (FastAPI)  →  dashboard/streamlit_app.py
 
 ## Puesta en marcha
 
+> ⚠️ **Este repo usa Git LFS** para `Servicios.txt` y `MedicamentoInsumo.txt`
+> (>85MB cada uno). Si después de clonar esos dos archivos pesan ~130 bytes
+> en vez de ~90MB, quedaron como punteros sin resolver — instala
+> [git-lfs](https://git-lfs.com/) y corre `git lfs pull` una vez.
+
 ```bash
+# 0) Solo la primera vez que usas git-lfs en esta máquina
+git lfs install
+git lfs pull
+
 # 1) Entorno virtual e instalación
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate

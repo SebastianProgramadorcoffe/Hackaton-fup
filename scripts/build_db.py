@@ -36,6 +36,12 @@ FECHA_CORTE_DEMO = "2026-09-21"
 # Semilla fija para que el stock simulado sea reproducible entre corridas.
 STOCK_SEED = 42
 
+# Umbrales de alerta (% de ocupación de camas). Configurables aquí porque
+# tanto el dashboard como el agente y el script de alertas los leen de
+# `meta`, en vez de hardcodearlos por separado en cada lugar.
+UMBRAL_OCUPACION_ALERTA_PCT = 85
+UMBRAL_OCUPACION_CRITICA_PCT = 95
+
 # archivo -> (nombre de tabla, columnas de fecha a parsear)
 TABLES: dict[str, tuple[str, list[str]]] = {
     "Paciente.txt": ("paciente", ["FechaNacimiento"]),
@@ -58,10 +64,27 @@ INDEXES: dict[str, list[str]] = {
 }
 
 
+def _check_not_lfs_pointer(path: Path) -> None:
+    """Falla rápido y claro si el archivo es un puntero de Git LFS sin resolver.
+
+    Ya nos pasó una vez: tras `git lfs migrate`, el checkout puede dejar el
+    puntero de texto en vez del contenido real, y build_db.py lo cargaría
+    en silencio como una tabla de "2 filas" sin ningún error.
+    """
+    with path.open("rb") as fh:
+        head = fh.read(60)
+    if head.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise RuntimeError(
+            f"{path} es un puntero de Git LFS sin resolver (no el archivo real). "
+            "Corre: git lfs install && git lfs pull"
+        )
+
+
 def load_table(conn: sqlite3.Connection, filename: str, table: str, date_cols: list[str]) -> int:
     path = RAW_DIR / filename
     if not path.exists():
         raise FileNotFoundError(f"No se encontró {path}")
+    _check_not_lfs_pointer(path)
     # quoting=QUOTE_NONE: los campos de texto libre (p. ej. MotivoConsulta en
     # Triage.txt) traen comillas dobles sueltas como texto literal, no como
     # delimitador CSV. Con el quoting por defecto, pandas las interpreta como
@@ -182,6 +205,8 @@ def main() -> None:
                 ("fecha_corte_demo", FECHA_CORTE_DEMO),
                 ("umbral_dias_inventario_bajo", "5"),
                 ("stock_medicamentos_simulado", "true"),
+                ("umbral_ocupacion_alerta_pct", str(UMBRAL_OCUPACION_ALERTA_PCT)),
+                ("umbral_ocupacion_critica_pct", str(UMBRAL_OCUPACION_CRITICA_PCT)),
             ],
         )
         conn.commit()

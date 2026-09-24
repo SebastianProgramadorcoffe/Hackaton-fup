@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 
+from app.alerts import alertas_activas
 from dashboard.queries import (
     cirugias_programadas_por_semana,
     espera_promedio_por_triage,
@@ -59,6 +60,30 @@ st.caption(
     f"Prototipo de hackatón. Fecha de corte usada como \"hoy\": **{fecha_corte_demo()}** "
     "(el dataset es histórico y fijo — ver DECISIONS.md)."
 )
+
+st.subheader("🚨 Alertas activas")
+todas_las_alertas = alertas_activas()
+n_criticas = sum(1 for a in todas_las_alertas if a.nivel == "critical")
+n_warning = len(todas_las_alertas) - n_criticas
+if not todas_las_alertas:
+    st.success("Sin alertas activas de camas ni de inventario en este momento.")
+else:
+    st.markdown(f"**{n_criticas} crítica(s)** · **{n_warning} de atención**")
+    top_alertas = todas_las_alertas[:6]  # las más severas primero; el detalle completo está más abajo
+    for a in top_alertas:
+        texto = f"**{a.servicio_o_medicamento}** — {a.detalle}"
+        st.error(texto) if a.nivel == "critical" else st.warning(texto)
+    if len(todas_las_alertas) > len(top_alertas):
+        st.caption(
+            f"+ {len(todas_las_alertas) - len(top_alertas)} alerta(s) más — ver el detalle de "
+            "inventario más abajo, o consultar GET /alerts."
+        )
+    st.caption(
+        "Notificación automática: `scripts/check_alerts.py` reconsulta estos mismos umbrales y "
+        "puede programarse (cron / Programador de tareas) para avisar por webhook — ver README.md."
+    )
+
+st.divider()
 
 kpis = resumen_kpis()
 c1, c2, c3, c4 = st.columns(4)

@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from app.alerts import alertas_activas_dict
 from app.db import DB_PATH, read_only_connection
 from app.nl2sql_agent import answer_question
 
@@ -48,6 +49,20 @@ def health() -> dict:
         except Exception:
             db_ok = False
     return {"status": "ok" if db_ok else "degraded", "db_ok": db_ok}
+
+
+@app.get("/alerts")
+def alerts() -> dict:
+    """Alertas activas: saturación de camas y desabastecimiento de medicamentos.
+
+    Pensado para que scripts/check_alerts.py (o cualquier scheduler externo)
+    lo consuma y decida si notifica, sin duplicar la lógica de umbrales.
+    """
+    activas = alertas_activas_dict()
+    counts = {"critical": 0, "warning": 0}
+    for a in activas:
+        counts[a["nivel"]] += 1
+    return {"alerts": activas, "counts": counts}
 
 
 @app.post("/ask", response_model=AskResponse)
