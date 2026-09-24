@@ -1,5 +1,5 @@
 # Tema del dashboard. Paleta: superficie oscura + acento dorado único
-# (ver dashboard/streamlit_app.py — contraste verificado con la fórmula WCAG,
+# (ver dashboard/main.py — contraste verificado con la fórmula WCAG,
 # no elegido a ojo). Los colores de datos (gráficas, alertas) NO se tocan
 # aquí: siguen la paleta validada del skill dataviz, solo en su variante
 # de superficie oscura.

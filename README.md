@@ -14,7 +14,7 @@ stock simulado, capacidad estimada, calidad de datos) — léelo antes de la dem
 Insumos Hackaton/Datos/*.txt  →  scripts/build_db.py  →  data/hackaton.db (SQLite)
 Insumos Hackaton/*.pdf        →  scripts/build_glossary_index.py  →  tabla glosario_fts (RAG)
 
-data/hackaton.db  →  app/api.py (FastAPI)  →  dashboard/streamlit_app.py
+data/hackaton.db  →  app/api.py (FastAPI)  →  dashboard/main.py
                         │
                         └─ app/nl2sql_agent.py: agente con tool-use de Claude
                            (consultar_sql + buscar_glosario), validado por
@@ -22,8 +22,10 @@ data/hackaton.db  →  app/api.py (FastAPI)  →  dashboard/streamlit_app.py
 ```
 
 - **Backend** (`app/`): FastAPI + agente NL2SQL/RAG sobre Claude (Anthropic API).
-- **Dashboard** (`dashboard/`): Streamlit + Plotly, lee la base directo (sin
-  pasar por el agente) para las gráficas, y usa la API solo para el chat.
+- **Dashboard** (`dashboard/`): Streamlit multipágina con navegación en la
+  barra lateral — **Resumen** (KPIs/gráficas/alertas, lee la base directo) y
+  **Agente** (chat que usa la API, con panel de detalle mostrando el SQL
+  real que ejecutó el agente para cada respuesta).
 - **Base de datos**: SQLite generada localmente, nunca se versiona (`data/`
   está en `.gitignore`).
 
@@ -63,7 +65,7 @@ python scripts/build_glossary_index.py
 uvicorn app.api:app --reload --port 8000
 
 # 5) Levantar el dashboard (otra terminal)
-streamlit run dashboard/streamlit_app.py
+streamlit run dashboard/main.py
 ```
 
 Dashboard: http://localhost:8501 · API: http://localhost:8000/docs
@@ -116,6 +118,8 @@ npx skills experimental_install
 | `scripts/build_db.py` | ETL: `.txt` → SQLite |
 | `scripts/build_glossary_index.py` | PDFs → índice FTS5 (RAG) |
 | `app/` | Backend: agente NL2SQL/RAG + API |
-| `dashboard/` | Dashboard Streamlit |
+| `dashboard/main.py` | Punto de entrada (navegación en la barra lateral) |
+| `dashboard/theme.py` | Paleta y CSS compartidos por todas las páginas |
+| `dashboard/views/` | Una página por archivo: `resumen.py`, `agente.py` |
 | `data/` | Generado, no versionado |
 | `DECISIONS.md` | Supuestos de datos e ingeniería, para el equipo y el jurado |
