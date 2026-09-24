@@ -45,13 +45,31 @@ def _render_hero() -> None:
     )
     cols = st.columns(len(EJEMPLOS))
     for col, ejemplo in zip(cols, EJEMPLOS):
-        if col.button(ejemplo, key=f"ejemplo-{ejemplo}", width="stretch", help=ejemplo):
-            st.session_state["pregunta_sugerida"] = ejemplo
-            st.rerun()
+        if col.button(ejemplo, key=f"ejemplo-{ejemplo}", width="stretch", help=ejemplo, disabled=st.session_state.processing):
+            _encolar_pregunta(ejemplo)
 
 
-def _preguntar(pregunta: str) -> None:
+def _encolar_pregunta(pregunta: str) -> None:
+    """Agrega la pregunta al chat y dispara el rerun que la va a procesar.
+
+    Separado en dos pasos (encolar -> procesar) a propósito: así Streamlit
+    alcanza a pintar el mensaje del usuario y el spinner de "pensando" ANTES
+    de bloquearse en la llamada a la API (que tarda varios segundos, ver
+    _procesar_pendiente). Encolar directo a _procesar_pendiente en el mismo
+    rerun dejaba la pantalla congelada sin ningún indicador de carga durante
+    esa espera, y si el usuario volvía a escribir mientras tanto, Streamlit
+    entregaba esa segunda pregunta apenas terminaba el rerun bloqueado,
+    generando dos mensajes de usuario encadenados. Mientras `processing` es
+    True, el input y los botones de ejemplo quedan deshabilitados, así que
+    no se puede volver a enviar nada hasta que la respuesta actual termine.
+    """
     st.session_state.chat.append({"role": "user", "content": pregunta})
+    st.session_state.processing = True
+    st.rerun()
+
+
+def _procesar_pendiente() -> None:
+    pregunta = st.session_state.chat[-1]["content"]
     try:
         resp = requests.post(f"{API_URL}/ask", json={"question": pregunta}, timeout=60)
         resp.raise_for_status()
@@ -69,6 +87,7 @@ def _preguntar(pregunta: str) -> None:
         respuesta = f"No pude contactar al agente ({exc}). ¿Está corriendo `uvicorn app.api:app`?"
         st.session_state.last_trace = {"pregunta": pregunta, "turns": None, "tool_calls": []}
     st.session_state.chat.append({"role": "assistant", "content": respuesta})
+    st.session_state.processing = False
 
 
 def _render_trace_panel() -> None:
@@ -130,6 +149,8 @@ def render() -> None:
         st.session_state.chat = []
     if "last_trace" not in st.session_state:
         st.session_state.last_trace = None
+    if "processing" not in st.session_state:
+        st.session_state.processing = False
 
     col_chat, col_trace = st.columns([2.3, 1], gap="large")
 
@@ -144,12 +165,18 @@ def render() -> None:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
+        if st.session_state.processing:
+            with st.chat_message("assistant"):
+                with st.spinner("Pensando..."):
+                    _procesar_pendiente()
+            st.rerun()
+
     with col_trace:
         _render_trace_panel()
 
-    pregunta_sugerida = st.session_state.pop("pregunta_sugerida", None)
-    pregunta = st.chat_input("Escribe tu pregunta sobre el HIS...")
-    pregunta_final = pregunta_sugerida or pregunta
-    if pregunta_final:
-        _preguntar(pregunta_final)
-        st.rerun()
+    pregunta = st.chat_input(
+        "Escribe tu pregunta sobre el HIS...",
+        disabled=st.session_state.processing,
+    )
+    if pregunta and not st.session_state.processing:
+        _encolar_pregunta(pregunta)
