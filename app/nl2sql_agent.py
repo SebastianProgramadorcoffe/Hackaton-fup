@@ -9,6 +9,7 @@ CIE-10 de un diagnóstico y luego contar cuántos ingresos lo tienen).
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass, field
 
 import anthropic
@@ -56,6 +57,12 @@ class AgentResult:
     answer: str
     tool_calls: list[dict] = field(default_factory=list)
     turns: int = 0
+    # Tiempos en segundos, medidos con time.perf_counter() (reloj monotónico,
+    # no afectado por ajustes del reloj del sistema — el correcto para medir
+    # duraciones, a diferencia de time.time()).
+    elapsed_seconds: float = 0.0
+    llm_seconds: float = 0.0   # suma de las llamadas a la API de Claude
+    tools_seconds: float = 0.0  # suma de la ejecución de herramientas (SQL, glosario)
 
 
 def _system_prompt() -> str:
@@ -106,20 +113,21 @@ de inventar una cifra.
 """
 
 
-def _run_tool(name: str, tool_input: dict) -> tuple[dict, bool]:
-    """Ejecuta una tool call. Devuelve (contenido_para_el_modelo, es_error)."""
+def _run_tool(name: str, tool_input: dict) -> tuple[dict, bool, float]:
+    """Ejecuta una tool call. Devuelve (contenido_para_el_modelo, es_error, duracion_s)."""
+    inicio = time.perf_counter()
     try:
         if name == "consultar_sql":
             columns, rows = execute_readonly_sql(tool_input["sql"])
-            return {"columnas": columns, "filas": rows, "num_filas": len(rows)}, False
+            return {"columnas": columns, "filas": rows, "num_filas": len(rows)}, False, time.perf_counter() - inicio
         if name == "buscar_glosario":
             resultados = search_glossary(tool_input["consulta"], tool_input.get("limite", 5))
-            return {"resultados": resultados}, False
-        return {"error": f"Herramienta desconocida: {name}"}, True
+            return {"resultados": resultados}, False, time.perf_counter() - inicio
+        return {"error": f"Herramienta desconocida: {name}"}, True, time.perf_counter() - inicio
     except SqlGuardError as exc:
-        return {"error": str(exc)}, True
+        return {"error": str(exc)}, True, time.perf_counter() - inicio
     except Exception as exc:  # noqa: BLE001 - se reporta al modelo como error de tool
-        return {"error": f"Error inesperado: {exc}"}, True
+        return {"error": f"Error inesperado: {exc}"}, True, time.perf_counter() - inicio
 
 
 def answer_question(question: str) -> AgentResult:
@@ -130,8 +138,12 @@ def answer_question(question: str) -> AgentResult:
     system = _system_prompt()
     messages: list[dict] = [{"role": "user", "content": question}]
     trace: list[dict] = []
+    inicio_total = time.perf_counter()
+    llm_seconds = 0.0
+    tools_seconds = 0.0
 
     for turn in range(1, MAX_AGENT_TOOL_TURNS + 1):
+        inicio_llm = time.perf_counter()
         response = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=1500,
@@ -139,18 +151,27 @@ def answer_question(question: str) -> AgentResult:
             tools=_TOOLS,
             messages=messages,
         )
+        llm_seconds += time.perf_counter() - inicio_llm
 
         if response.stop_reason != "tool_use":
             texto = "".join(b.text for b in response.content if b.type == "text")
-            return AgentResult(answer=texto.strip(), tool_calls=trace, turns=turn)
+            return AgentResult(
+                answer=texto.strip(), tool_calls=trace, turns=turn,
+                elapsed_seconds=time.perf_counter() - inicio_total,
+                llm_seconds=llm_seconds, tools_seconds=tools_seconds,
+            )
 
         messages.append({"role": "assistant", "content": response.content})
         tool_results = []
         for block in response.content:
             if block.type != "tool_use":
                 continue
-            output, is_error = _run_tool(block.name, block.input)
-            trace.append({"tool": block.name, "input": block.input, "output": output, "error": is_error})
+            output, is_error, duracion = _run_tool(block.name, block.input)
+            tools_seconds += duracion
+            trace.append({
+                "tool": block.name, "input": block.input, "output": output,
+                "error": is_error, "duration_ms": round(duracion * 1000, 1),
+            })
             tool_results.append(
                 {
                     "type": "tool_result",
@@ -165,4 +186,6 @@ def answer_question(question: str) -> AgentResult:
         answer="No pude completar la respuesta en el número máximo de pasos permitidos. Intenta reformular la pregunta.",
         tool_calls=trace,
         turns=MAX_AGENT_TOOL_TURNS,
+        elapsed_seconds=time.perf_counter() - inicio_total,
+        llm_seconds=llm_seconds, tools_seconds=tools_seconds,
     )

@@ -61,6 +61,9 @@ def _preguntar(pregunta: str) -> None:
             "pregunta": pregunta,
             "turns": data.get("turns"),
             "tool_calls": data.get("tool_calls", []),
+            "elapsed_seconds": data.get("elapsed_seconds"),
+            "llm_seconds": data.get("llm_seconds"),
+            "tools_seconds": data.get("tools_seconds"),
         }
     except requests.RequestException as exc:
         respuesta = f"No pude contactar al agente ({exc}). ¿Está corriendo `uvicorn app.api:app`?"
@@ -75,6 +78,18 @@ def _render_trace_panel() -> None:
         st.markdown('<div class="trace-empty">Haz una pregunta para ver aquí qué herramientas usó el agente y qué consultó.</div>', unsafe_allow_html=True)
         return
 
+    elapsed = trace.get("elapsed_seconds")
+    if elapsed is not None:
+        # st.metric trunca sin avisar en columnas angostas como esta (ver
+        # DECISIONS.md / historial del proyecto) -- una línea de texto es
+        # mas robusta aqui que 3 columnas de metric.
+        st.markdown(
+            f"⏱️ **{elapsed:.1f}s** en total &nbsp;·&nbsp; "
+            f"{trace.get('llm_seconds', 0):.1f}s modelo &nbsp;·&nbsp; "
+            f"{trace.get('tools_seconds', 0):.2f}s herramientas",
+            help="El modelo (llamadas a la API de Claude) es casi siempre el cuello de botella, no el SQL.",
+        )
+
     with st.expander("🗨️ Pregunta", expanded=True):
         st.write(trace["pregunta"])
 
@@ -85,7 +100,9 @@ def _render_trace_panel() -> None:
         for i, tc in enumerate(tool_calls, start=1):
             icon, label = TOOL_META.get(tc["tool"], ("⚙️", tc["tool"]))
             estado = "❌ error" if tc.get("error") else "✅ ok"
-            st.markdown(f"{icon} **{i}. {label}** — {estado}")
+            duracion = tc.get("duration_ms")
+            sufijo = f" · {duracion:.0f} ms" if duracion is not None else ""
+            st.markdown(f"{icon} **{i}. {label}** — {estado}{sufijo}")
 
     sql_calls = [tc for tc in tool_calls if tc["tool"] == "consultar_sql"]
     if sql_calls:
@@ -105,7 +122,7 @@ def _render_trace_panel() -> None:
                 st.json(tc["output"], expanded=False)
 
     if trace.get("turns"):
-        st.caption(f"Resuelto en {trace['turns']} paso(s) de razonamiento.")
+        st.caption(f"{trace['turns']} paso(s) de razonamiento.")
 
 
 def render() -> None:

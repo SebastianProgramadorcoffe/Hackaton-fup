@@ -37,6 +37,9 @@ class AskResponse(BaseModel):
     answer: str
     turns: int
     tool_calls: list[dict]
+    elapsed_seconds: float
+    llm_seconds: float
+    tools_seconds: float
 
 
 @app.get("/health")
@@ -76,4 +79,14 @@ def ask(payload: AskRequest) -> AskResponse:
         logger.exception("Fallo inesperado respondiendo la pregunta: %r", payload.question)
         raise HTTPException(status_code=500, detail="Error interno procesando la pregunta.") from None
 
-    return AskResponse(answer=result.answer, turns=result.turns, tool_calls=result.tool_calls)
+    logger.info(
+        "ask: %.2fs total (%.2fs LLM, %.2fs herramientas, %d turnos) - %r",
+        result.elapsed_seconds, result.llm_seconds, result.tools_seconds,
+        result.turns, payload.question,
+    )
+    return AskResponse(
+        answer=result.answer, turns=result.turns, tool_calls=result.tool_calls,
+        elapsed_seconds=round(result.elapsed_seconds, 3),
+        llm_seconds=round(result.llm_seconds, 3),
+        tools_seconds=round(result.tools_seconds, 3),
+    )
