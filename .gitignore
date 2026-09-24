@@ -17,6 +17,7 @@ Thumbs.db
 *.key
 *.pem
 data/.api-key
+.streamlit/secrets.toml
 
 # Python
 __pycache__/

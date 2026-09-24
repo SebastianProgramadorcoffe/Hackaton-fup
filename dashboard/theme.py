@@ -8,6 +8,8 @@ el dorado es puramente decorativo (chrome), nunca dato.
 """
 from __future__ import annotations
 
+import os
+
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -23,7 +25,7 @@ INK_SECONDARY = "#c3c2b7"
 INK_MUTED = "#898781"
 GRIDLINE = "#2c2c2a"
 
-API_URL = "http://localhost:8000"
+API_URL = os.environ.get("API_URL", "http://localhost:8000")
 
 
 def inject_css() -> None:
@@ -133,6 +135,55 @@ def inject_css() -> None:
         .agent-hero-desc {{ font-size: 0.9rem; color: {INK_SECONDARY}; max-width: 460px; margin: 0 auto; line-height: 1.5; }}
 
         .trace-empty {{ color: {INK_MUTED}; font-size: 0.85rem; padding: 1rem 0; }}
+
+        /* Tarjetas de sección (st.container(border=True)): separación clara
+           entre bloques y superficie propia, en vez de que todo flote sobre
+           el fondo de página. */
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            background: {SURFACE};
+            border-color: {ACCENT_SOFT} !important;
+            border-radius: 16px !important;
+        }}
+
+        /* Que tablas y dataframes nunca desborden la página: scroll propio
+           en vez de romper el layout en pantallas angostas. */
+        [data-testid="stDataFrame"], [data-testid="stTable"] {{
+            max-width: 100%;
+            overflow-x: auto;
+        }}
+
+        /* Franja de estado (KPI) bajo cada métrica */
+        .kpi-status {{
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            font-size: 0.75rem; font-weight: 600; margin-top: 0.3rem;
+        }}
+
+        /* --- Adaptabilidad: pantallas medianas (tablet / ventana angosta) ---
+           Streamlit no reparte columnas en 2x2 por sí solo entre el ancho de
+           escritorio y el punto de quiebre móvil: se van encogiendo hasta
+           volverse ilegibles. Se fuerza wrap con un ancho mínimo por columna. */
+        @media (max-width: 900px) {{
+            [data-testid="stHorizontalBlock"] {{
+                flex-wrap: wrap !important;
+                row-gap: 0.9rem;
+            }}
+            [data-testid="stHorizontalBlock"] > [data-testid="column"] {{
+                min-width: 46% !important;
+                flex: 1 1 46% !important;
+            }}
+        }}
+
+        /* --- Adaptabilidad: móvil --- */
+        @media (max-width: 560px) {{
+            [data-testid="stHorizontalBlock"] > [data-testid="column"] {{
+                min-width: 100% !important;
+                flex: 1 1 100% !important;
+            }}
+            [data-testid="stMetric"] {{ padding: 0.75rem 0.85rem 0.6rem; }}
+            [data-testid="stMetricValue"] {{ font-size: 1.4rem; }}
+            .agent-hero {{ padding: 1.5rem 1rem; }}
+            h1 {{ font-size: 1.5rem; }}
+        }}
         </style>
         """,
         unsafe_allow_html=True,

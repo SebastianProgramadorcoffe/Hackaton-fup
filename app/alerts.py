@@ -54,8 +54,12 @@ def alertas_ocupacion_camas() -> list[Alerta]:
     for servicio, ocupadas, capacidad, pct in rows:
         if pct >= umbral_critical:
             nivel = "critical"
+            umbral_cruzado = umbral_critical
+            etiqueta_umbral = "crítico"
         elif pct >= umbral_warning:
             nivel = "warning"
+            umbral_cruzado = umbral_warning
+            etiqueta_umbral = "de atención"
         else:
             continue
         alertas.append(
@@ -63,7 +67,11 @@ def alertas_ocupacion_camas() -> list[Alerta]:
                 tipo="ocupacion_camas",
                 nivel=nivel,
                 servicio_o_medicamento=servicio,
-                detalle=f"{ocupadas}/{capacidad} camas ocupadas ({pct:.0f}%)",
+                detalle=(
+                    f"{ocupadas}/{capacidad} camas ocupadas ({pct:.0f}%) — supera el umbral "
+                    f"{etiqueta_umbral} de {umbral_cruzado:.0f}%. Riesgo de no tener cama disponible "
+                    "para el próximo ingreso de este servicio."
+                ),
                 valor=round(pct, 1),
             )
         )
@@ -86,12 +94,17 @@ def alertas_inventario_medicamentos(umbral_critico_dias: float = 2.0) -> list[Al
     alertas = []
     for nombre, stock, consumo, dias in rows:
         nivel = "critical" if dias < umbral_critico_dias else "warning"
+        urgencia = "se agota en menos de 2 días" if nivel == "critical" else f"por debajo del umbral de {umbral_bajo:.0f} días"
         alertas.append(
             Alerta(
                 tipo="inventario_medicamento",
                 nivel=nivel,
                 servicio_o_medicamento=nombre,
-                detalle=f"{dias:.1f} días de inventario (stock simulado={stock}, consumo/día={consumo:.1f})",
+                detalle=(
+                    f"{dias:.1f} días de inventario restante ({urgencia}). "
+                    f"Consumo real de {consumo:.1f} unidades/día, stock inicial SIMULADO ({stock:.0f} unidades) "
+                    "para este prototipo."
+                ),
                 valor=round(dias, 1),
             )
         )

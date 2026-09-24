@@ -95,6 +95,22 @@ consulta y color, p. ej. "PEDIATRIA URGENCIAS CONSULTORIO UNO- TRIAGE 2 (AMARILL
 Para agrupar o filtrar por nivel de triage (1-4), extrae el número con \
 CAST(substr(ClasificacionTriage, instr(ClasificacionTriage, 'TRIAGE') + 7, 1) AS INTEGER), \
 nunca agrupes por el texto crudo.
+- El último mes calendario del dataset (el que contiene fecha_corte_demo) está \
+INCOMPLETO (termina en fecha_corte_demo, no a fin de mes). Si comparas volúmenes \
+por mes (ingresos, servicios, etc.), acláralo explícitamente o compara promedios \
+diarios en vez de totales — nunca afirmes una "caída" o "aumento" en ese mes sin \
+esa aclaración.
+- programacion_cirugia solo enlaza correctamente con ingresos en ~25% de sus filas \
+y con paciente en ~34% (huecos reales de la fuente, no error tuyo). Si respondes \
+algo sobre cirugías programadas que dependa de ese join (fecha, paciente), acláralo \
+("con base en el ~25-34% de registros de programación que sí cruzan con ingresos/paciente").
+- NombreDiagnostico viene vacío en ~2% de los ingresos. Exclúyelos explícitamente \
+(WHERE NombreDiagnostico IS NOT NULL AND TRIM(NombreDiagnostico) != '') al calcular \
+tops o rankings de diagnósticos, para no listar "(vacío)" como si fuera un diagnóstico real.
+- Los datos son de un solo hospital regional (Cauca, ~97% de los pacientes, mayoría \
+régimen Subsidiado). Si una pregunta pide comparar con "el promedio nacional" o \
+generalizar a Colombia, aclara que la muestra no es representativa fuera de esta \
+población atendida.
 
 HERRAMIENTAS:
 - Usa consultar_sql para cualquier pregunta de métricas/conteos/promedios.

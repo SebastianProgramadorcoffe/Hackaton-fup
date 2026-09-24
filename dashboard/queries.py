@@ -99,6 +99,14 @@ def medicamentos_bajo_inventario(umbral_dias: float | None = None) -> pd.DataFra
     return _query(sql, params)
 
 
+def umbrales_ocupacion() -> tuple[float, float]:
+    """(umbral_alerta_pct, umbral_critico_pct) desde meta, para colorear KPIs sin duplicar el umbral."""
+    with read_only_connection() as conn:
+        alerta = conn.execute("SELECT valor FROM meta WHERE clave='umbral_ocupacion_alerta_pct'").fetchone()[0]
+        critico = conn.execute("SELECT valor FROM meta WHERE clave='umbral_ocupacion_critica_pct'").fetchone()[0]
+    return float(alerta), float(critico)
+
+
 def resumen_kpis() -> dict:
     ocup = ocupacion_por_servicio()
     uci = ocup.loc[ocup["servicio"] == "UNIDAD DE CUIDADO INTENSIVO"]
