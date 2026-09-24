@@ -97,6 +97,10 @@ def render() -> None:
             fig = go.Figure()
             fig.add_scatter(x=df_cir["semana"], y=df_cir["n_cirugias"], mode="lines+markers", line=dict(color=SERIE_1, width=2))
             st.plotly_chart(apply_chart_theme(fig), width="stretch")
+            st.caption(
+                "Cubre solo el ~25% de programacion_cirugia que sí enlaza con un ingreso "
+                "(esa tabla no trae fecha propia — ver docs/modelo-relacional.md)."
+            )
 
     with col_der2:
         st.subheader("Inventario de medicamentos")

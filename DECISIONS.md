@@ -63,3 +63,26 @@ hospital, y así debe presentarse.
   ilegibles. El nivel se extrae con
   `CAST(substr(ClasificacionTriage, instr(ClasificacionTriage,'TRIAGE')+7, 1) AS INTEGER)`
   — ya aplicado en `dashboard/queries.py` y en las reglas del agente NL2SQL.
+- **`programacion_cirugia` enlaza mal con `ingresos` y `paciente`** (ver
+  [docs/MODELO_RELACIONAL.md](docs/MODELO_RELACIONAL.md) para el detalle
+  verificado por consulta, no por inspección visual): solo el **25.1%** de
+  sus filas (3.277 de 13.046) tiene un `OidIngreso` que existe en
+  `ingresos`, y solo el **34.4%** (4.492) tiene un `IdPaciente` que existe
+  en `paciente`. Desglose de por qué:
+  - 2.404 filas (18.4%) tienen `OidIngreso` vacío.
+  - 4.896 filas (37.5%) referencian un `OidIngreso` **anterior al mínimo**
+    de `Ingresos.txt` — `ProgramacionCirugia.txt` cubre una ventana de
+    fechas más amplia que `Ingresos.txt`, que parece recortado.
+  - 2.469 filas (18.9%) están dentro del mismo rango de ids pero aun así
+    no hacen match — hueco real, no explicado por la ventana de fechas.
+  - **Implicación para casos de uso:** cualquier consulta que necesite el
+    paciente o la fecha de una cirugía programada (uniendo con `ingresos`
+    o `paciente`) solo cubre ~una cuarta parte de los registros. La
+    gráfica "Uso de quirófanos" del dashboard hereda esta limitación
+    porque `programacion_cirugia` no trae su propia fecha — depende del
+    `JOIN` con `ingresos.FechaIngreso` para poder agrupar por semana.
+- `programacion_cirugia` no tiene una llave de una sola columna: 
+  `ConsecutivoProgramacion` se repite (6.156 valores distintos en 13.046
+  filas) porque una misma cirugía programada puede incluir varios códigos
+  de procedimiento (CUPS). La llave real, verificada, es la compuesta
+  **(ConsecutivoProgramacion, CodigoServicio)** — 13.046/13.046 única.

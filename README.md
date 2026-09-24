@@ -8,6 +8,14 @@ interactivo con KPIs y alertas.
 Ver [DECISIONS.md](DECISIONS.md) para los supuestos de datos (fecha de corte,
 stock simulado, capacidad estimada, calidad de datos) — léelo antes de la demo.
 
+📚 **Documentación:**
+- [docs/modelo-relacional.md](docs/modelo-relacional.md) — diagrama entidad-relación
+  y diccionario de datos completo, con la integridad referencial de cada
+  relación verificada por consulta (no asumida). Punto de partida obligatorio
+  para diseñar casos de uso.
+- [DECISIONS.md](DECISIONS.md) — supuestos de ingeniería y hallazgos de calidad
+  de datos.
+
 ## Arquitectura
 
 ```
@@ -123,3 +131,4 @@ npx skills experimental_install
 | `dashboard/views/` | Una página por archivo: `resumen.py`, `agente.py` |
 | `data/` | Generado, no versionado |
 | `DECISIONS.md` | Supuestos de datos e ingeniería, para el equipo y el jurado |
+| `docs/modelo-relacional.md` | Diagrama ER + diccionario de datos, para casos de uso |

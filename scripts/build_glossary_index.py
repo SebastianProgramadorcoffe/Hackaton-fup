@@ -17,6 +17,12 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
+# Ver build_db.py: la consola por defecto de Windows (cp1252) revienta con
+# UnicodeEncodeError si algún print() trae un carácter fuera de ese codepage.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "data" / "hackaton.db"
 

@@ -1,0 +1,99 @@
+erDiagram
+    PACIENTE {
+        string IdPaciente PK
+        string TipoDocumento
+        string NombrePaciente
+        date FechaNacimiento
+        string Sexo
+        string Asegurador
+        string Regimen
+        string Departamento
+        string Municipio
+        string Zona
+    }
+    INGRESOS {
+        string OidIngreso PK
+        string ConsecutivoIngreso
+        string IdPaciente FK
+        string ClaseIngreso
+        string ViaIngreso
+        string TipoRiesgo
+        datetime FechaIngreso
+        datetime FechaHospitalizacion "asignacion de cama - no es alta"
+        string OidTriageA FK
+        string CodigoCama
+        string NombreCama
+        string NombreGrupoCama
+        string NombreSubgrupoCama
+        string CodigoDiagnostico "CIE-10 catalogo externo"
+        string NombreDiagnostico
+    }
+    ATENCION {
+        string OidIngreso PK "tambien FK a INGRESOS - no todos los ingresos tienen"
+        datetime FechaAtencion
+    }
+    TRIAGE {
+        string OidTriage PK "9.4pct vacio - ver notas"
+        datetime FechaTriage
+        string MotivoConsulta "texto libre"
+        string TensionArterial
+        string FrecuenciaCardiaca
+        string FrecuenciaRespiratoria
+        string Temperatura
+        string IdPaciente2 FK
+        string CodigoTriage
+        string ClasificacionTriage "sucia - ver notas"
+    }
+    PROGRAMACION_CIRUGIA {
+        string ConsecutivoProgramacion PK "compuesta con CodigoServicio"
+        string IdPaciente FK "debil - solo 34.4pct hace match"
+        string OidIngreso FK "debil - solo 25.1pct hace match"
+        string CodigoServicio PK "CUPS - compuesta con Consecutivo"
+    }
+    SERVICIOS {
+        string OidS PK
+        string OidIngreso FK
+        string CodigoServicio "CUPS catalogo externo"
+        string NombreServicio
+        string Cantidad
+        datetime FechaPrestacion
+        string CodigoAreaServicio
+        string AreaServicio
+        string Especialidad
+    }
+    MEDICAMENTO_INSUMO {
+        string OidMI PK
+        string OidIngreso FK
+        string CodigoServicio "catalogo de medicamentos"
+        string NombreServicio
+        string Cantidad
+        datetime FechaPrestacion
+        string AreaServicio
+        string Especialidad
+    }
+    STOCK_MEDICAMENTOS {
+        string codigo_servicio PK "SIMULADO - no viene del HIS"
+        string nombre_servicio
+        real consumo_promedio_diario "real - calculado del historico"
+        int stock_actual "simulado"
+        int simulado "siempre 1"
+    }
+    CAPACIDAD_CAMAS {
+        string nombre_grupo_cama PK "ESTIMADO de datos reales"
+        int capacidad_estimada
+    }
+    META {
+        string clave PK
+        string valor
+    }
+
+    PACIENTE ||--o{ INGRESOS : "IdPaciente 100pct"
+    TRIAGE ||--o{ INGRESOS : "OidTriageA 90.6pct"
+    INGRESOS ||--o| ATENCION : "OidIngreso 97.7pct tiene atencion"
+    PACIENTE ||--o{ TRIAGE : "IdPaciente2 90.6pct"
+    PACIENTE ||--o{ PROGRAMACION_CIRUGIA : "IdPaciente debil 34.4pct"
+    INGRESOS ||--o{ PROGRAMACION_CIRUGIA : "OidIngreso debil 25.1pct"
+    INGRESOS ||--o{ SERVICIOS : "OidIngreso 100pct"
+    INGRESOS ||--o{ MEDICAMENTO_INSUMO : "OidIngreso 100pct"
+    MEDICAMENTO_INSUMO }o--|| STOCK_MEDICAMENTOS : "CodigoServicio agregado simulado"
+    INGRESOS }o--|| CAPACIDAD_CAMAS : "NombreGrupoCama agregado estimado"

@@ -25,6 +25,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# En la consola por defecto de Windows (cp1252), un print() con un carácter
+# fuera de ese codepage revienta con UnicodeEncodeError a mitad del build.
+# Ya nos pasó una vez (ver reportar_llaves_primarias). Se fuerza UTF-8.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "Insumos Hackaton" / "Datos"
 DB_PATH = ROOT / "data" / "hackaton.db"
@@ -54,13 +61,31 @@ TABLES: dict[str, tuple[str, list[str]]] = {
 }
 
 # Índices por tabla: columnas usadas como llave foránea o filtro frecuente.
+# ingresos.OidIngreso faltaba aquí y es el join más usado de todo el
+# esquema (atencion/programacion_cirugia/servicios/medicamento_insumo lo
+# usan) — sin índice, cualquier join contra ingresos hace table scan.
 INDEXES: dict[str, list[str]] = {
-    "ingresos": ["IdPaciente", "OidTriageA", "NombreGrupoCama", "FechaIngreso", "FechaHospitalizacion"],
+    "ingresos": ["OidIngreso", "IdPaciente", "OidTriageA", "NombreGrupoCama", "FechaIngreso", "FechaHospitalizacion"],
     "atencion": ["OidIngreso"],
-    "triage": ["IdPaciente2", "ClasificacionTriage"],
-    "programacion_cirugia": ["IdPaciente", "OidIngreso", "CodigoServicio"],
-    "servicios": ["OidIngreso", "CodigoServicio", "AreaServicio"],
-    "medicamento_insumo": ["OidIngreso", "CodigoServicio", "AreaServicio"],
+    "triage": ["OidTriage", "IdPaciente2", "ClasificacionTriage"],
+    "programacion_cirugia": ["ConsecutivoProgramacion", "IdPaciente", "OidIngreso", "CodigoServicio"],
+    "servicios": ["OidS", "OidIngreso", "CodigoServicio", "AreaServicio"],
+    "medicamento_insumo": ["OidMI", "OidIngreso", "CodigoServicio", "AreaServicio"],
+    "paciente": ["IdPaciente"],
+}
+
+# Candidatas a llave primaria por tabla: se verifica empíricamente (filas
+# vs valores distintos, sin asumir por el nombre de la columna) y se
+# reporta en la salida del script. No se fuerza UNIQUE porque al menos una
+# (triage.OidTriage) tiene valores vacíos conocidos — ver DECISIONS.md.
+PK_CANDIDATES: dict[str, str] = {
+    "paciente": "IdPaciente",
+    "ingresos": "OidIngreso",
+    "atencion": "OidIngreso",
+    "triage": "OidTriage",
+    "servicios": "OidS",
+    "medicamento_insumo": "OidMI",
+    "programacion_cirugia": "ConsecutivoProgramacion",
 }
 
 
@@ -175,6 +200,24 @@ def build_capacidad_camas(conn: sqlite3.Connection) -> int:
     return conn.execute("SELECT COUNT(*) FROM capacidad_camas").fetchone()[0]
 
 
+def reportar_llaves_primarias(conn: sqlite3.Connection) -> None:
+    """Verifica empíricamente cada candidata a PK (fila vs valores distintos).
+
+    No asume que una columna es llave solo por su nombre — lo comprueba.
+    Solo informativo (no aborta el build): ya sabíamos por análisis previo
+    que triage.OidTriage tiene ~1.675 valores vacíos (ver DECISIONS.md).
+    """
+    print("\nVerificación de llaves primarias candidatas:")
+    for table, col in PK_CANDIDATES.items():
+        total, distintos, vacios = conn.execute(
+            f'SELECT COUNT(*), COUNT(DISTINCT "{col}"), '
+            f'SUM(CASE WHEN "{col}" IS NULL OR "{col}" = \'\' THEN 1 ELSE 0 END) '
+            f'FROM "{table}"'
+        ).fetchone()
+        estado = "OK (unica, sin vacios)" if distintos == total and not vacios else "AVISO: revisar"
+        print(f"  {table}.{col:<24} {distintos}/{total} distintos, {vacios} vacíos  [{estado}]")
+
+
 def main() -> None:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     if DB_PATH.exists():
@@ -191,6 +234,8 @@ def main() -> None:
             for col in cols:
                 idx_name = f"idx_{table}_{col.lower()}"
                 conn.execute(f'CREATE INDEX IF NOT EXISTS {idx_name} ON {table} ("{col}")')
+
+        reportar_llaves_primarias(conn)
 
         n_stock = build_stock_simulado(conn)
         print(f"  {'stock_medicamentos':<22} {n_stock:>8} filas  <- SIMULADO (ver docstring build_stock_simulado)")

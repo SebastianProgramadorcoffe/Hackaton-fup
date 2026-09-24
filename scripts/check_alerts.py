@@ -25,6 +25,15 @@ import os
 import sys
 from pathlib import Path
 
+# En Windows, ejecutado sin consola (Task Scheduler) o con la consola en su
+# codepage cp1252 por defecto, un simple print() con emoji (✅🔴🟡) revienta
+# con UnicodeEncodeError y el chequeo de alertas falla en silencio -- justo
+# cuando nadie está mirando para notarlo. Se fuerza UTF-8 en stdout/stderr
+# antes de imprimir nada.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import requests
