@@ -95,6 +95,19 @@ significado de "hoy" y del stock simulado):
 - Nunca commitear `.env`, credenciales, ni los instaladores/`.zip` que trae
   Windows por defecto (`.gitignore` ya los cubre).
 
+## Skills de diseño (Claude Code / Codex / Cursor)
+
+El dashboard se diseñó con las skills de `redesign-existing-projects` y
+`high-end-visual-design` (paquete `emilkowalski/skills` + `taste-skill`). Su
+contenido vive en `.agents/skills/` (versionado); los symlinks que cada
+herramienta de IA necesita (`.claude/skills/`, etc.) NO se versionan porque
+en Windows sin symlinks (`core.symlinks=false`) git los guardaría rotos.
+Después de clonar, si vas a pedirle a un agente que toque el diseño:
+
+```bash
+npx skills experimental_install
+```
+
 ## Estructura del repo
 
 | Ruta | Qué es |

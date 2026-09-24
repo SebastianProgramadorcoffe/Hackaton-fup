@@ -1,0 +1,18 @@
+# Tema del dashboard. Paleta: superficie oscura + acento dorado único
+# (ver dashboard/streamlit_app.py — contraste verificado con la fórmula WCAG,
+# no elegido a ojo). Los colores de datos (gráficas, alertas) NO se tocan
+# aquí: siguen la paleta validada del skill dataviz, solo en su variante
+# de superficie oscura.
+[theme]
+base = "dark"
+primaryColor = "#c9a15e"
+backgroundColor = "#0d0d0d"
+secondaryBackgroundColor = "#1a1a19"
+textColor = "#ffffff"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#1a1a19"
+
+[server]
+headless = true

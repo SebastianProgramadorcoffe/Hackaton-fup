@@ -37,3 +37,8 @@ build/
 
 # gstack local state
 .gstack/
+
+# Symlinks the `skills` CLI creates per machine (core.symlinks=false here
+# would commit them as broken text files). Source of truth is .agents/skills/
+# + skills-lock.json; regenerate with: npx skills experimental_install
+.claude/skills/
