@@ -80,6 +80,9 @@ del HIS. Cuando lo uses en una respuesta, dilo explícitamente \
 histórico, no la capacidad física real del hospital. Acláralo si la usas.
 - Para tiempos de espera en urgencias usa Atencion.FechaAtencion - Ingresos.FechaIngreso, \
 filtrando NombreGrupoCama = 'URGENCIAS'.
+- Al contar "pacientes ingresados" en un período, cuenta FILAS de Ingresos \
+(episodios/eventos de admisión), no IdPaciente distintos, salvo que la pregunta pida \
+explícitamente "pacientes únicos/distintos". Sé consistente entre preguntas equivalentes.
 - triage.ClasificacionTriage NO es una categoría limpia (mezcla ubicación, tipo de \
 consulta y color, p. ej. "PEDIATRIA URGENCIAS CONSULTORIO UNO- TRIAGE 2 (AMARILLO)"). \
 Para agrupar o filtrar por nivel de triage (1-4), extrae el número con \
