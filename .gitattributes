@@ -1,2 +1,4 @@
+Insumos Hackaton/Datos/Servicios.txt filter=lfs diff=lfs merge=lfs -text
+Insumos Hackaton/Datos/MedicamentoInsumo.txt filter=lfs diff=lfs merge=lfs -text
 Servicios.txt filter=lfs diff=lfs merge=lfs -text
 MedicamentoInsumo.txt filter=lfs diff=lfs merge=lfs -text
