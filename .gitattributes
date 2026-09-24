@@ -1,0 +1,2 @@
+Servicios.txt filter=lfs diff=lfs merge=lfs -text
+MedicamentoInsumo.txt filter=lfs diff=lfs merge=lfs -text
