@@ -93,6 +93,17 @@ significado de "hoy" y del stock simulado):
 - ¿Cuál es el tiempo de espera promedio en urgencias en la última semana?
 - ¿Qué servicio tiene más pacientes ingresados este mes?
 
+## Observabilidad
+
+- Cada respuesta del agente trae el tiempo que tomó, desglosado: `elapsed_seconds`
+  (total), `llm_seconds` (llamadas a la API de Claude) y `tools_seconds` (SQL +
+  glosario) — visible en el panel "Detalle del agente" del dashboard y en el log
+  del servidor (`uvicorn`) en cada request a `/ask`. En la práctica el modelo es
+  el cuello de botella (segundos), no la base de datos (milisegundos).
+- `GET /alerts` expone las mismas alertas de camas/inventario que ve el
+  dashboard, para que `scripts/check_alerts.py` (o cualquier monitor externo)
+  las consuma sin duplicar la lógica de umbrales.
+
 ## Seguridad
 
 - El SQL que genera el agente pasa por `app/sql_guard.py`: solo se permite
@@ -123,12 +134,15 @@ npx skills experimental_install
 | Ruta | Qué es |
 |---|---|
 | `Insumos Hackaton/` | Datos crudos del reto (no editar a mano) |
-| `scripts/build_db.py` | ETL: `.txt` → SQLite |
+| `scripts/build_db.py` | ETL: `.txt` → SQLite (índices + verificación de llaves primarias) |
 | `scripts/build_glossary_index.py` | PDFs → índice FTS5 (RAG) |
-| `app/` | Backend: agente NL2SQL/RAG + API |
+| `scripts/check_alerts.py` | Notificación automática de alertas (cron / Task Scheduler) |
+| `app/` | Backend: agente NL2SQL/RAG + API + alertas |
 | `dashboard/main.py` | Punto de entrada (navegación en la barra lateral) |
 | `dashboard/theme.py` | Paleta y CSS compartidos por todas las páginas |
 | `dashboard/views/` | Una página por archivo: `resumen.py`, `agente.py` |
+| `.streamlit/config.toml` | Tema oscuro + acento dorado del dashboard |
 | `data/` | Generado, no versionado |
 | `DECISIONS.md` | Supuestos de datos e ingeniería, para el equipo y el jurado |
 | `docs/modelo-relacional.md` | Diagrama ER + diccionario de datos, para casos de uso |
+| `docs/modelo-relacional.drawio` | Mismo modelo, estilo clásico editable en draw.io |
