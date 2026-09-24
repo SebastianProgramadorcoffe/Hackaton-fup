@@ -50,6 +50,15 @@ from dashboard.views import agente, resumen
 
 DB_PATH = ROOT / "data" / "hackaton.db"
 
+if not os.environ.get("ANTHROPIC_API_KEY"):
+    st.error(
+        "Falta ANTHROPIC_API_KEY. Si ya la agregaste en Settings → Secrets, "
+        "reinicia la app manualmente (menú ⋮ → Reboot app) — solo guardar el "
+        "secreto no siempre recarga un contenedor que ya estaba corriendo sin "
+        "ella. Local: revisa tu archivo .env."
+    )
+    st.stop()
+
 
 @st.cache_resource(show_spinner="Preparando la base de datos (solo la primera vez)...")
 def _ensure_db() -> None:
