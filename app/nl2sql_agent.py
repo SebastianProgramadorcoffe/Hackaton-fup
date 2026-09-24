@@ -80,6 +80,11 @@ del HIS. Cuando lo uses en una respuesta, dilo explícitamente \
 histórico, no la capacidad física real del hospital. Acláralo si la usas.
 - Para tiempos de espera en urgencias usa Atencion.FechaAtencion - Ingresos.FechaIngreso, \
 filtrando NombreGrupoCama = 'URGENCIAS'.
+- triage.ClasificacionTriage NO es una categoría limpia (mezcla ubicación, tipo de \
+consulta y color, p. ej. "PEDIATRIA URGENCIAS CONSULTORIO UNO- TRIAGE 2 (AMARILLO)"). \
+Para agrupar o filtrar por nivel de triage (1-4), extrae el número con \
+CAST(substr(ClasificacionTriage, instr(ClasificacionTriage, 'TRIAGE') + 7, 1) AS INTEGER), \
+nunca agrupes por el texto crudo.
 
 HERRAMIENTAS:
 - Usa consultar_sql para cualquier pregunta de métricas/conteos/promedios.

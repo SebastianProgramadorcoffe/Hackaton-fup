@@ -56,3 +56,10 @@ hospital, y así debe presentarse.
 - ~1.675 de 17.781 filas de `Triage.txt` (~9.4%) tienen `OidTriage` vacío.
   No se puede hacer join por ese id en esas filas; si se necesitan, usar
   `IdPaciente2` en su lugar.
+- `triage.ClasificacionTriage` no es una categoría limpia: mezcla ubicación,
+  tipo de consulta y color (ej. `"PEDIATRIA URGENCIAS CONSULTORIO UNO-
+  TRIAGE 2 (AMARILLO)"`), con ~18 valores distintos para solo 4 niveles
+  reales (1 a 4). Agrupar por el texto crudo da una gráfica y respuestas
+  ilegibles. El nivel se extrae con
+  `CAST(substr(ClasificacionTriage, instr(ClasificacionTriage,'TRIAGE')+7, 1) AS INTEGER)`
+  — ya aplicado en `dashboard/queries.py` y en las reglas del agente NL2SQL.
