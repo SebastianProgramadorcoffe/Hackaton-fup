@@ -9,6 +9,20 @@ renderizar con `/diagram` si el esquema cambia).
 
 ![Modelo relacional](modelo-relacional.png)
 
+### Versión alternativa (estilo clásico, editable en draw.io)
+
+[modelo-relacional.drawio](modelo-relacional.drawio) — mismo esquema, en el
+estilo clásico de diagrama ER (cajas naranjas, PK en negrita, FK en cursiva).
+Ábrelo gratis en [app.diagrams.net](https://app.diagrams.net) (Archivo →
+Abrir) o en la app de escritorio de draw.io; ahí puedes reacomodar las cajas,
+cambiar colores o exportarlo a PNG/PDF para una presentación. Vista previa:
+
+![Vista previa draw.io](modelo-relacional-drawio-preview.jpg)
+
+Se genera con [generate_drawio.py](generate_drawio.py) a partir del mismo
+esquema verificado — si la base cambia, edita ese script (no el `.drawio` a
+mano) y vuelve a correrlo.
+
 ## Cómo leer las relaciones
 
 Cada línea del diagrama trae el % de filas del lado "muchos" que
