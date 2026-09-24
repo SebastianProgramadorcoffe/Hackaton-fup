@@ -1,0 +1,39 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+
+# Installers / archives — never belong in the repo
+*.exe
+*.msi
+*.zip
+*.7z
+*.rar
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+data/.api-key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Local DB / generated data
+*.sqlite
+*.sqlite3
+*.db
+
+# gstack local state
+.gstack/
